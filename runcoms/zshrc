@@ -1,4 +1,4 @@
-#
+#!/usr/bin/env zsh
 # Executes commands at the start of an interactive session.
 #
 # Authors:
@@ -10,4 +10,63 @@ if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
   source "${ZDOTDIR:-$HOME}/.zprezto/init.zsh"
 fi
 
-# Customize to your needs...
+alias :e=$EDITOR
+alias vi=$EDITOR
+alias git=hub
+alias drun='docker run -ti --rm'
+alias dinit='$(boot2docker shellinit)'
+alias cssh='tmux-cssh -ns -cs'
+if [ -x /usr/bin/xdg-open ]; then
+  alias open=/usr/bin/xdg-open
+fi
+
+#bindkey -v # vim mode
+bindkey "^R" history-incremental-search-backward
+
+# Report sys usage of every command that takes more than 2 sec to execute
+REPORTTIME=2
+
+has() {
+  which "$1" >/dev/null 2>&1
+}
+
+function up_find_parent_project() {
+  local orig=$PWD
+  while true ; do
+    cd ..
+
+    # Root dir, abort and ignore
+    if [ "$PWD" = "$HOME" ] || [ "$PWD" = "/" ] ; then
+      echo "$orig"
+      return
+    fi
+
+    # Project root found
+    if [ -d .git ] || [ -f .envrc ] || [ -f Gemfile ] || [ -d .hg ] || [ "$PWD" = "${DIRENV_DIR#-}" ] ; then
+      pwd
+      return
+    fi
+  done
+}
+
+# Wrap goup to avoid polluting the CD history
+function up() {
+  local newpath
+  newpath=$(up_find_parent_project)
+  if [ "$newpath" != "$PWD" ]; then
+    cd "$newpath"
+  fi
+}
+
+eval "$(command h --setup)"
+
+ohfuckit() { git commit -m ">< $(curl --silent http://whatthecommit.com/index.txt)"; }
+retry() { while ! "$@"; do sleep 5; done }
+
+has brew && [[ -s "$(brew --prefix)/etc/autojump.sh" ]] && . "$(brew --prefix)/etc/autojump.sh"
+
+# At the very end
+if which direnv &>/dev/null ; then
+  eval "$(direnv hook zsh)"
+fi
+
